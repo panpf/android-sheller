@@ -51,7 +51,7 @@ syncExecute() 方法万不可在主线程中执行
 #### 2.2. 异步执行：
 
 ```java
-CommandResult result = new Sheller("pwd").asyncExecute(new ResultCallback(){
+new Sheller("pwd").asyncExecute(new ResultCallback(){
   @Override
   public void onCallbackResult(@NonNull CommandResult result){
     ...
@@ -62,7 +62,7 @@ CommandResult result = new Sheller("pwd").asyncExecute(new ResultCallback(){
 回调结果默认在异步线程中执行，若想要在主线程中执行回调，只需传入一个主线程的 Handler 即可：
 
 ```java
-CommandResult result = new Sheller("pwd").asyncExecute(new Handler(Looper.getMainLooper()), new ResultCallback(){
+new Sheller("pwd").asyncExecute(new Handler(Looper.getMainLooper()), new ResultCallback(){
   @Override
   public void onCallbackResult(@NonNull CommandResult result){
     ...
