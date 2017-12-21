@@ -30,6 +30,7 @@ import java.util.List;
 /**
  * 执行 shell 命令，可以同步也可以异步，还可以批量顺序执行
  */
+// TODO: 2017/12/20 支持事务，打开一个进程 持续输入命令返回结果
 public class Sheller {
 
     private List<Command> commandList = new LinkedList<>();
@@ -164,6 +165,12 @@ public class Sheller {
             outputStream.writeBytes("\n");
             outputStream.flush();
 
+            // 退出 sh
+            outputStream.writeBytes("exit");
+            outputStream.writeBytes("\n");
+            outputStream.flush();
+
+            // 退出 Process
             outputStream.writeBytes("exit");
             outputStream.writeBytes("\n");
             outputStream.flush();

@@ -54,6 +54,8 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+            inputEditText.text = null
+
             val newCommandHistory = CommandHistory(shell, null)
             adapter.addAll(newCommandHistory)
 
