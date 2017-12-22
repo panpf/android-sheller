@@ -18,6 +18,7 @@ package me.panpf.shell;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.text.TextUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -38,6 +39,8 @@ public class CommandResult {
 
     private transient String exceptionStackTrace;
 
+    private transient String mixedText;
+
     @SuppressWarnings("WeakerAccess")
     public CommandResult(@NonNull Command command, int code, @Nullable String text, @Nullable String errorText, @Nullable Exception exception) {
         this.command = command;
@@ -51,7 +54,7 @@ public class CommandResult {
      * 是否成功，根据返回的状态判断，等于 0 即为成功
      */
     public boolean isSuccess() {
-        return code == 0;
+        return code == 0 || isMixedSuccess();
     }
 
     /**
@@ -60,6 +63,11 @@ public class CommandResult {
     @SuppressWarnings("unused")
     public boolean isException() {
         return code == -1 && exception != null;
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    public boolean isMixedSuccess() {
+        return code > 0 && !TextUtils.isEmpty(text) && !TextUtils.isEmpty(errorText);
     }
 
     @NonNull
@@ -82,7 +90,14 @@ public class CommandResult {
      */
     @Nullable
     public String getText() {
-        return text;
+        if (isMixedSuccess()) {
+            if (mixedText == null) {
+                mixedText = text + "\n" + errorText;
+            }
+            return mixedText;
+        } else {
+            return text;
+        }
     }
 
     /**
@@ -134,7 +149,11 @@ public class CommandResult {
         builder.append("command=").append(command);
         builder.append(", code=").append(code);
         if (isSuccess()) {
-            builder.append(", text=").append(text);
+            if (isMixedSuccess()) {
+                builder.append(", mixedText=").append(getText());
+            } else {
+                builder.append(", text=").append(text);
+            }
         } else if (isException()) {
             builder.append(", exceptionMessage=").append(getExceptionMessage());
         } else {

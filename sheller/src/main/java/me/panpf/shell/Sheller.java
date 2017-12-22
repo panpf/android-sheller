@@ -20,10 +20,6 @@ import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -141,89 +137,6 @@ public class Sheller {
     }
 
     /**
-     * 执行命令
-     *
-     * @param command 待执行的命令
-     * @return 执行结果
-     */
-    @NonNull
-    private CommandResult execute(@NonNull Command command) {
-        int code;
-        String text = null;
-        String errorText = null;
-        Exception exception = null;
-
-        Process process = null;
-        BufferedReader textReader = null;
-        BufferedReader errorTextReader = null;
-        DataOutputStream outputStream = null;
-        try {
-            process = Runtime.getRuntime().exec("sh", command.getEnvpArray(), command.getDir());
-            outputStream = new DataOutputStream(process.getOutputStream());
-
-            outputStream.writeBytes(command.getShell());
-            outputStream.writeBytes("\n");
-            outputStream.flush();
-
-            // 退出 sh
-            outputStream.writeBytes("exit");
-            outputStream.writeBytes("\n");
-            outputStream.flush();
-
-            // 退出 Process
-            outputStream.writeBytes("exit");
-            outputStream.writeBytes("\n");
-            outputStream.flush();
-
-            code = process.waitFor();
-
-            StringBuilder textBuilder = new StringBuilder();
-            textReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String readLine;
-            while ((readLine = textReader.readLine()) != null) {
-                if (textBuilder.length() > 0) {
-                    textBuilder.append("\n");
-                }
-                textBuilder.append(readLine);
-            }
-            text = textBuilder.toString().trim();
-
-            errorTextReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-            StringBuilder errorTextBuilder = new StringBuilder();
-            while ((readLine = errorTextReader.readLine()) != null) {
-                if (errorTextBuilder.length() > 0) {
-                    errorTextBuilder.append("\n");
-                }
-                errorTextBuilder.append(readLine);
-            }
-            errorText = errorTextBuilder.toString().trim();
-        } catch (Exception e) {
-            e.printStackTrace();
-            code = -1;
-            exception = e;
-        } finally {
-            try {
-                if (outputStream != null) {
-                    outputStream.close();
-                }
-                if (errorTextReader != null) {
-                    errorTextReader.close();
-                }
-                if (textReader != null) {
-                    textReader.close();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-                if (process != null) {
-                    process.destroy();
-                }
-            }
-        }
-        return new CommandResult(command, code, text, errorText, exception);
-    }
-
-    /**
      * 同步执行，只要最后一个结果
      */
     @NonNull
@@ -242,20 +155,20 @@ public class Sheller {
 
             if (lastResult != null && command instanceof SuspendCommand) {
                 if (((SuspendCommand) command).checkLastResult(previousResult)) {
-                    previousResult = execute(command);
+                    previousResult = new ShellExecutor(command).execute();
                     lastResult = previousResult;
                 } else {
                     break;
                 }
             } else if (lastResult != null && command instanceof ConditionalCommand) {
                 if (((ConditionalCommand) command).checkLastResult(previousResult)) {
-                    previousResult = execute(command);
+                    previousResult = new ShellExecutor(command).execute();
                     lastResult = previousResult;
                 } else {
                     previousResult = null;
                 }
             } else {
-                previousResult = execute(command);
+                previousResult = new ShellExecutor(command).execute();
                 lastResult = previousResult;
             }
         }
