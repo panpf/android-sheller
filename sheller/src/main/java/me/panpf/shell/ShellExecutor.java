@@ -17,10 +17,12 @@
 package me.panpf.shell;
 
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 
 class ShellExecutor {
@@ -38,56 +40,71 @@ class ShellExecutor {
      */
     @NonNull
     CommandResult execute() {
+        if (command.isPrintLog()) {
+            Log.d(Sheller.TAG, "ShellExecutor. execute");
+        }
+
         int code;
         String text = null;
         String errorText = null;
         Exception exception = null;
 
         Process process = null;
-        BufferedReader textReader = null;
-        BufferedReader errorTextReader = null;
         DataOutputStream outputStream = null;
         try {
             process = Runtime.getRuntime().exec("sh", command.getEnvpArray(), command.getDir());
+
             outputStream = new DataOutputStream(process.getOutputStream());
 
-            outputStream.writeBytes(command.getShell());
-            outputStream.writeBytes("\n");
-            outputStream.flush();
-
-            // 退出 sh
-            outputStream.writeBytes("exit");
-            outputStream.writeBytes("\n");
-            outputStream.flush();
-
-            // 退出 Process
-            outputStream.writeBytes("exit");
-            outputStream.writeBytes("\n");
-            outputStream.flush();
-
             StringBuilder textBuilder = new StringBuilder();
-            textReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String readLine;
-            while ((readLine = textReader.readLine()) != null) {
-                if (textBuilder.length() > 0) {
-                    textBuilder.append("\n");
-                }
-                textBuilder.append(readLine);
-            }
-            text = textBuilder.toString().trim();
+            new ReadThread(command, false, textBuilder, process.getInputStream()).start();
 
-            errorTextReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
             StringBuilder errorTextBuilder = new StringBuilder();
-            while ((readLine = errorTextReader.readLine()) != null) {
-                if (errorTextBuilder.length() > 0) {
-                    errorTextBuilder.append("\n");
-                }
-                errorTextBuilder.append(readLine);
+            new ReadThread(command, true, errorTextBuilder, process.getErrorStream()).start();
+
+            final String shell = command.getShell();
+            if (command.isPrintLog()) {
+                Log.d(Sheller.TAG, String.format("ShellExecutor. write command: %s", shell));
             }
-            errorText = errorTextBuilder.toString().trim();
+
+            outputStream.writeBytes(shell);
+            outputStream.writeBytes("\n");
+            outputStream.flush();
+
+            if (command.isPrintLog()) {
+                Log.d(Sheller.TAG, "ShellExecutor. exit sh");
+            }
+
+            // exit sh
+            outputStream.writeBytes("exit 0");
+            outputStream.writeBytes("\n");
+            outputStream.flush();
+
+            if (command.isPrintLog()) {
+                Log.d(Sheller.TAG, "ShellExecutor. exit process");
+            }
+
+            // exit Process
+            outputStream.writeBytes("exit 0");
+            outputStream.writeBytes("\n");
+            outputStream.flush();
+
+            // 关闭输出流，输入流才会不再等待
+            outputStream.close();
+
+            if (command.isPrintLog()) {
+                Log.d(Sheller.TAG, "ShellExecutor. wait");
+            }
 
             code = process.waitFor();
+
+            text = textBuilder.toString().trim();
+            errorText = errorTextBuilder.toString().trim();
         } catch (Exception e) {
+            if (command.isPrintLog()) {
+                Log.w(Sheller.TAG, String.format("ShellExecutor. exception: %s", e.toString()));
+            }
+
             e.printStackTrace();
             code = -1;
             exception = e;
@@ -95,12 +112,6 @@ class ShellExecutor {
             try {
                 if (outputStream != null) {
                     outputStream.close();
-                }
-                if (errorTextReader != null) {
-                    errorTextReader.close();
-                }
-                if (textReader != null) {
-                    textReader.close();
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -110,157 +121,73 @@ class ShellExecutor {
                 }
             }
         }
-        return new CommandResult(command, code, text, errorText, exception);
+
+        final CommandResult result = new CommandResult(command, code, text, errorText, exception);
+        if (command.isPrintLog()) {
+            Log.w(Sheller.TAG, String.format("ShellExecutor. return: %s", result.toString()));
+        }
+
+        return result;
     }
 
-//    /**
-//     * 执行命令
-//     *
-//     * @return 执行结果
-//     */
-//    @NonNull
-//    CommandResult execute() {
-//        int code;
-//        String text = null;
-//        String errorText = null;
-//        Exception exception = null;
-//
-//        Process process = null;
-//        DataOutputStream outputStream = null;
-//        StringBuilder fullBuilder = new StringBuilder();
-//        StringBuilder textBuilder = new StringBuilder();
-//        StringBuilder errorTextBuilder = new StringBuilder();
-//        CountDownLatch countDownLatch = new CountDownLatch(3);
-//        ReadThread readThread = null;
-//        ReadThread errorReadThread = null;
-//        try {
-//            process = Runtime.getRuntime().exec("sh", command.getEnvpArray(), command.getDir());
-//            outputStream = new DataOutputStream(process.getOutputStream());
-//
-//            readThread = new ReadThread(fullBuilder, textBuilder, countDownLatch, process.getInputStream());
-//            errorReadThread = new ReadThread(fullBuilder, errorTextBuilder, countDownLatch, process.getErrorStream());
-//
-//            readThread.start();
-//            errorReadThread.start();
-//
-//            outputStream.writeBytes(command.getShell());
-//            outputStream.writeBytes("\n");
-//            outputStream.flush();
-//
-//            // 退出 sh
-//            outputStream.writeBytes("exit");
-//            outputStream.writeBytes("\n");
-//            outputStream.flush();
-//
-//            // 退出 Process
-//            outputStream.writeBytes("exit");
-//            outputStream.writeBytes("\n");
-//            outputStream.flush();
-//
-//            Log.d("ShellExecutor", "ReadThread. waitFor before");
-//
-//            code = process.waitFor();
-//
-//            Log.d("ShellExecutor", "ReadThread. waitFor after");
-//
-//            readThread.destroy();
-//            errorReadThread.destroy();
-//            countDownLatch.countDown();
-//
-//            text = fullBuilder.toString().trim();
-//            errorText = errorTextBuilder.toString().trim();
-//
-//            if (code == 1 && !TextUtils.isEmpty(text)) {
-//                code = 0;
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            code = -1;
-//            exception = e;
-//        } finally {
-//            if (readThread != null) {
-//                readThread.destroy();
-//            }
-//            if (errorReadThread != null) {
-//                readThread.destroy();
-//            }
-//            try {
-//                if (outputStream != null) {
-//                    outputStream.close();
-//                }
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            } finally {
-//                if (process != null) {
-//                    process.destroy();
-//                }
-//            }
-//        }
-//        return new CommandResult(command, code, text, errorText, exception);
-//    }
-//
-//    private static class ReadThread extends Thread {
-//        @NonNull
-//        private final StringBuilder builder;
-//        @NonNull
-//        private StringBuilder builder2;
-//        @NonNull
-//        private CountDownLatch downLatch;
-//        @NonNull
-//        private BufferedReader bufferedReader;
-//        private boolean running = true;
-//
-//        ReadThread(@NonNull StringBuilder builder, @NonNull StringBuilder builder2, @NonNull CountDownLatch downLatch, @NonNull InputStream inputStream) {
-//            this.builder = builder;
-//            this.builder2 = builder2;
-//            this.downLatch = downLatch;
-//            this.bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
-//        }
-//
-//        public void destroy() {
-//            running = false;
-//            notifyAll();
-//        }
-//
-//        @Override
-//        public void run() {
-//            while (running) {
-//                String readLine = null;
-//                try {
-//                    readLine = bufferedReader.readLine();
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//                if (readLine != null) {
-//                    Log.d("ShellExecutor", "ReadThread. newLine: " + readLine);
-//                    synchronized (builder) {
-//                        if (builder.length() > 0) {
-//                            builder.append("\n");
-//                        }
-//                        builder.append(readLine);
-//
-//                        if (builder2.length() > 0) {
-//                            builder2.append("\n");
-//                        }
-//                        builder2.append(readLine);
-//                    }
-//                } else {
-//                    Log.d("ShellExecutor", "ReadThread. wait 500 ms");
-//                    try {
-//                        wait();
-//                    } catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                    }
-//                }
-//            }
-//
-//            Log.w("ShellExecutor", "ReadThread. end");
-//            try {
-//                bufferedReader.close();
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//            downLatch.countDown();
-//        }
-//    }
+    private static class ReadThread extends Thread {
+        @NonNull
+        private Command command;
+        private boolean error;
+        @NonNull
+        private StringBuilder textBuilder;
+        @NonNull
+        private InputStream inputStream;
+
+        ReadThread(@NonNull Command command, boolean error, @NonNull StringBuilder textBuilder, @NonNull InputStream inputStream) {
+            this.command = command;
+            this.error = error;
+            this.textBuilder = textBuilder;
+            this.inputStream = inputStream;
+        }
+
+        @Override
+        public void run() {
+            if (command.isPrintLog()) {
+                Log.i(Sheller.TAG, String.format("ShellExecutor. ReadThread. %s. start", error ? "error" : "text"));
+            }
+
+            BufferedReader bufferedReader = null;
+            try {
+                String readLine;
+                bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+                while ((readLine = bufferedReader.readLine()) != null) {
+                    if (textBuilder.length() > 0) {
+                        textBuilder.append("\n");
+                    }
+                    textBuilder.append(readLine);
+
+                    if (command.isPrintLog()) {
+                        if (error) {
+                            Log.e(Sheller.TAG, String.format("ShellExecutor. ReadThread. %s. read text: %s", error ? "error" : "text", readLine));
+                        } else {
+                            Log.d(Sheller.TAG, String.format("ShellExecutor. ReadThread. %s. read text: %s", error ? "error" : "text", readLine));
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                if (command.isPrintLog()) {
+                    Log.w(Sheller.TAG, String.format("ShellExecutor. ReadThread. %s. exception: %s", error ? "error" : "text", e.toString()));
+                }
+                e.printStackTrace();
+            } finally {
+                if (bufferedReader != null) {
+                    try {
+                        bufferedReader.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            if (command.isPrintLog()) {
+                Log.w(Sheller.TAG, String.format("ShellExecutor. ReadThread. %s. end", error ? "error" : "text"));
+            }
+        }
+    }
 }

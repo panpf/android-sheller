@@ -46,6 +46,8 @@ class MainActivity : AppCompatActivity() {
 
         historyRecyclerView.adapter = adapter
 
+        inputEditText.setText("su")
+
         button.setOnClickListener {
             val shell = inputEditText.editableText.toString().trim()
 
@@ -65,7 +67,7 @@ class MainActivity : AppCompatActivity() {
 
             button.visibility = View.INVISIBLE
             progress.visibility = View.VISIBLE
-            Sheller(Command(shell).dir(Environment.getExternalStorageDirectory())).asyncExecute(Handler(mainLooper)) { result ->
+            Sheller(Command(shell).dir(Environment.getExternalStorageDirectory()).printLog()).asyncExecute(Handler(mainLooper)) { result ->
                 newCommandHistory.result = result
                 adapter.notifyItemChanged(insertIndex)
                 historyRecyclerView.smoothScrollToPosition(insertIndex)

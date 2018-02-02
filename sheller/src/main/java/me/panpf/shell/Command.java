@@ -33,6 +33,7 @@ public class Command {
     private String shell;
     private List<String> envpList;
     private File dir;
+    private boolean printLog;
 
     public Command(@NonNull String shell) {
         //noinspection ConstantConditions
@@ -40,6 +41,14 @@ public class Command {
             throw new IllegalArgumentException("param shell is null or empty");
         }
         this.shell = shell;
+    }
+
+    /**
+     * 打印执行过程
+     */
+    public Command printLog() {
+        this.printLog = true;
+        return this;
     }
 
     /**
@@ -195,6 +204,10 @@ public class Command {
     @Nullable
     public File getDir() {
         return dir;
+    }
+
+    public boolean isPrintLog() {
+        return printLog;
     }
 
     @NonNull

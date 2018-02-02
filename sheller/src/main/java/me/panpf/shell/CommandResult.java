@@ -39,8 +39,6 @@ public class CommandResult {
 
     private transient String exceptionStackTrace;
 
-    private transient String mixedText;
-
     @SuppressWarnings("WeakerAccess")
     public CommandResult(@NonNull Command command, int code, @Nullable String text, @Nullable String errorText, @Nullable Exception exception) {
         this.command = command;
@@ -54,7 +52,12 @@ public class CommandResult {
      * 是否成功，根据返回的状态判断，等于 0 即为成功
      */
     public boolean isSuccess() {
-        return code == 0 || isMixedSuccess();
+        if (code == 0) {
+            // 虽然 code 为 0 ，但是只有错误信息，说明还是失败了
+            return !TextUtils.isEmpty(text) || TextUtils.isEmpty(errorText);
+        } else {
+            return code > 0 && !TextUtils.isEmpty(text) && !TextUtils.isEmpty(errorText);
+        }
     }
 
     /**
@@ -63,11 +66,6 @@ public class CommandResult {
     @SuppressWarnings("unused")
     public boolean isException() {
         return code == -1 && exception != null;
-    }
-
-    @SuppressWarnings("WeakerAccess")
-    public boolean isMixedSuccess() {
-        return code > 0 && !TextUtils.isEmpty(text) && !TextUtils.isEmpty(errorText);
     }
 
     @NonNull
@@ -90,13 +88,18 @@ public class CommandResult {
      */
     @Nullable
     public String getText() {
-        if (isMixedSuccess()) {
-            if (mixedText == null) {
-                mixedText = text + "\n" + errorText;
+        if (!TextUtils.isEmpty(text) || !TextUtils.isEmpty(errorText)) {
+            StringBuilder builder = new StringBuilder();
+            if (!TextUtils.isEmpty(text)) {
+                builder.append(text);
             }
-            return mixedText;
+            if (!TextUtils.isEmpty(errorText)) {
+                builder.append("\n");
+                builder.append(errorText);
+            }
+            return builder.toString();
         } else {
-            return text;
+            return null;
         }
     }
 
@@ -148,15 +151,10 @@ public class CommandResult {
         builder.append("{");
         builder.append("command=").append(command);
         builder.append(", code=").append(code);
-        if (isSuccess()) {
-            if (isMixedSuccess()) {
-                builder.append(", mixedText=").append(getText());
-            } else {
-                builder.append(", text=").append(text);
-            }
-        } else if (isException()) {
+        if (isException()) {
             builder.append(", exceptionMessage=").append(getExceptionMessage());
         } else {
+            builder.append(", text=").append(text);
             builder.append(", errorText=").append(errorText);
         }
         builder.append('}');

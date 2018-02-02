@@ -28,6 +28,7 @@ import java.util.List;
  */
 // TODO: 2017/12/20 支持事务，打开一个进程 持续输入命令返回结果
 public class Sheller {
+    public static final String TAG = "Sheller";
 
     private List<Command> commandList = new LinkedList<>();
 
