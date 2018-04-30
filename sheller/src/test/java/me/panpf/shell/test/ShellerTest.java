@@ -1,6 +1,6 @@
 package me.panpf.shell.test;
 
-import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -46,8 +46,8 @@ public class ShellerTest {
         Command errorLsCommand = new Command("lss");
         ConditionalCommand whichCommand = new ConditionalCommand("whichh mkdir") {
             @Override
-            public boolean checkLastResult(@NonNull CommandResult lastResult) {
-                return lastResult.isSuccess();
+            public boolean checkLastResult(@Nullable CommandResult lastResult) {
+                return lastResult != null && lastResult.isSuccess();
             }
         };
         Command pwdCommand = new Command("pwd");
@@ -65,8 +65,8 @@ public class ShellerTest {
         Command errorLsCommand = new Command("lss");
         SuspendCommand whichCommand = new SuspendCommand("whichh mkdir") {
             @Override
-            public boolean checkLastResult(@NonNull CommandResult lastResult) {
-                return lastResult.isSuccess();
+            public boolean checkLastResult(@Nullable CommandResult lastResult) {
+                return lastResult != null && lastResult.isSuccess();
             }
         };
         Command pwdCommand = new Command("pwd");
