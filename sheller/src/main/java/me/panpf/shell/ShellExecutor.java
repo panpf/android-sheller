@@ -17,130 +17,269 @@
 package me.panpf.shell;
 
 import android.support.annotation.NonNull;
-import android.util.Log;
+import android.support.annotation.Nullable;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * 负责具体执行 shell 命令
+ */
 class ShellExecutor {
-    @NonNull
-    private Command command;
 
-    ShellExecutor(@NonNull Command command) {
-        this.command = command;
+    @NonNull
+    private Cmd cmd;
+    @NonNull
+    private Callback callback;
+
+    @Nullable
+    private TimeoutTask timeoutTask;
+    @NonNull
+    private AtomicBoolean timeout;
+
+    @Nullable
+    private ShellTask shellTask;
+    @NonNull
+    private AtomicBoolean running;
+
+    private ShellExecutor(@NonNull Cmd cmd, @NonNull Callback callback) {
+        this.cmd = cmd;
+        this.callback = callback;
+        this.timeout = new AtomicBoolean(false);
+        this.running = new AtomicBoolean(false);
     }
 
-    /**
-     * 执行命令
-     *
-     * @return 执行结果
-     */
-    @NonNull
-    CommandResult execute() {
-        if (command.isPrintLog()) {
-            Log.d(Sheller.TAG, "ShellExecutor. execute");
-        }
-
-        int code;
-        String text = null;
-        String errorText = null;
-        Exception exception = null;
-
-        Process process = null;
-        DataOutputStream outputStream = null;
+    public static CmdResult syncExecute(@NonNull Cmd cmd) {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final CmdResult[] results = new CmdResult[1];
+        new ShellExecutor(cmd, new Callback() {
+            @Override
+            public void onFinished(@NonNull CmdResult result) {
+                results[0] = result;
+                countDownLatch.countDown();
+            }
+        }).execute();
         try {
-            process = Runtime.getRuntime().exec("sh", command.getEnvpArray(), command.getDir());
-
-            outputStream = new DataOutputStream(process.getOutputStream());
-
-            StringBuilder textBuilder = new StringBuilder();
-            new ReadThread(command, false, textBuilder, process.getInputStream()).start();
-
-            StringBuilder errorTextBuilder = new StringBuilder();
-            new ReadThread(command, true, errorTextBuilder, process.getErrorStream()).start();
-
-            final String shell = command.getShell();
-            if (command.isPrintLog()) {
-                Log.d(Sheller.TAG, String.format("ShellExecutor. write command: %s", shell));
-            }
-
-            outputStream.writeBytes(shell);
-            outputStream.writeBytes("\n");
-            outputStream.flush();
-
-            if (command.isPrintLog()) {
-                Log.d(Sheller.TAG, "ShellExecutor. exit sh");
-            }
-
-            // exit sh
-            outputStream.writeBytes("exit 0");
-            outputStream.writeBytes("\n");
-            outputStream.flush();
-
-            if (command.isPrintLog()) {
-                Log.d(Sheller.TAG, "ShellExecutor. exit process");
-            }
-
-            // exit Process
-            outputStream.writeBytes("exit 0");
-            outputStream.writeBytes("\n");
-            outputStream.flush();
-
-            // 关闭输出流，输入流才会不再等待
-            outputStream.close();
-
-            if (command.isPrintLog()) {
-                Log.d(Sheller.TAG, "ShellExecutor. wait");
-            }
-
-            code = process.waitFor();
-
-            text = textBuilder.toString().trim();
-            errorText = errorTextBuilder.toString().trim();
-        } catch (Exception e) {
-            if (command.isPrintLog()) {
-                Log.w(Sheller.TAG, String.format("ShellExecutor. exception: %s", e.toString()));
-            }
-
+            countDownLatch.await();
+        } catch (InterruptedException e) {
             e.printStackTrace();
-            code = -1;
-            exception = e;
-        } finally {
-            try {
-                if (outputStream != null) {
+            results[0] = new CmdResult(cmd, -1, null, null, e);
+        }
+        return results[0];
+    }
+
+    private void execute() {
+        if (running.get()) {
+            return;
+        }
+        running.set(true);
+
+        if (cmd.getTimeout() > 0) {
+            new Timer().schedule(timeoutTask = new TimeoutTask(this), cmd.getTimeout());
+        }
+
+        new Thread(shellTask = new ShellTask(cmd, this)).start();
+    }
+
+    private void timeout() {
+        running.set(false);
+
+        timeout.set(true);
+
+        if (shellTask != null) {
+            shellTask.cancel();
+        }
+
+        if (cmd.isPrintLog()) {
+            SHLog.w("Timeout. cmd: %s", cmd.toString());
+        }
+
+        try {
+            callback.onFinished(new CmdResult(cmd, -2, null, null, null));
+        } catch (Exception e) {
+            // 捕获回调异常
+            e.printStackTrace();
+        }
+    }
+
+    private synchronized void done(@NonNull CmdResult result) {
+        running.set(false);
+
+        if (timeout.get()) {
+            return;
+        }
+
+        if (timeoutTask != null) {
+            timeoutTask.cancel();
+        }
+
+        if (cmd.isPrintLog()) {
+            SHLog.d("Done. cmd: %s, return: %s", cmd.toString(), result.toString());
+        }
+
+        try {
+            callback.onFinished(result);
+        } catch (Exception e) {
+            // 捕获回调异常
+            e.printStackTrace();
+        }
+    }
+
+    public interface Callback {
+        void onFinished(@NonNull CmdResult result);
+    }
+
+    private static class TimeoutTask extends TimerTask {
+        @NonNull
+        private ShellExecutor executor;
+
+        TimeoutTask(@NonNull ShellExecutor executor) {
+            this.executor = executor;
+        }
+
+        @Override
+        public void run() {
+            executor.timeout();
+        }
+    }
+
+    private static class ShellTask implements Runnable {
+        @NonNull
+        private Cmd cmd;
+        @NonNull
+        private ShellExecutor executor;
+        @NonNull
+        private AtomicBoolean canceled;
+
+        @Nullable
+        private Process process = null;
+        @Nullable
+        private DataOutputStream outputStream = null;
+
+        ShellTask(@NonNull Cmd cmd, @NonNull ShellExecutor executor) {
+            this.cmd = cmd;
+            this.executor = executor;
+            this.canceled = new AtomicBoolean(false);
+        }
+
+        private void cancel() {
+            canceled.set(true);
+
+            if (outputStream != null) {
+                try {
                     outputStream.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-                if (process != null) {
-                    process.destroy();
-                }
+            }
+
+            if (process != null) {
+                process.destroy();
             }
         }
 
-        final CommandResult result = new CommandResult(command, code, text, errorText, exception);
-        if (command.isPrintLog()) {
-            Log.w(Sheller.TAG, String.format("ShellExecutor. return: %s", result.toString()));
-        }
+        @Override
+        public void run() {
+            if (cmd.isPrintLog()) {
+                SHLog.d("execute. %s", cmd.toString());
+            }
 
-        return result;
+            int code;
+            String text = null;
+            String errorText = null;
+            Exception exception = null;
+
+            try {
+                process = Runtime.getRuntime().exec("sh", cmd.getEnvpArray(), cmd.getDir());
+
+                outputStream = new DataOutputStream(process.getOutputStream());
+
+                StringBuilder textBuilder = new StringBuilder();
+                new ReadThread(cmd, false, textBuilder, process.getInputStream()).start();
+
+                StringBuilder errorTextBuilder = new StringBuilder();
+                new ReadThread(cmd, true, errorTextBuilder, process.getErrorStream()).start();
+
+                final String shell = cmd.getShell();
+                if (cmd.isPrintLog()) {
+                    SHLog.d("write cmd: %s", shell);
+                }
+
+                outputStream.writeBytes(shell);
+                outputStream.writeBytes("\n");
+                outputStream.flush();
+
+                if (cmd.isPrintLog()) {
+                    SHLog.d("exit sh. %s", cmd.toString());
+                }
+
+                // exit sh
+                outputStream.writeBytes("exit 0");
+                outputStream.writeBytes("\n");
+                outputStream.flush();
+
+                if (cmd.isPrintLog()) {
+                    SHLog.d("exit process. %s", cmd.toString());
+                }
+
+                // exit Process
+                outputStream.writeBytes("exit 0");
+                outputStream.writeBytes("\n");
+                outputStream.flush();
+
+                // 关闭输出流，输入流才会不再等待
+                outputStream.close();
+
+                if (cmd.isPrintLog()) {
+                    SHLog.d("wait. %s", cmd.toString());
+                }
+
+                code = process.waitFor();
+
+                text = textBuilder.toString().trim();
+                errorText = errorTextBuilder.toString().trim();
+            } catch (Exception e) {
+                e.printStackTrace();
+                code = -1;
+                exception = e;
+            } finally {
+                try {
+                    if (outputStream != null) {
+                        outputStream.close();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (process != null) {
+                        process.destroy();
+                    }
+                }
+            }
+
+            if (!canceled.get()) {
+                executor.done(new CmdResult(cmd, code, text, errorText, exception));
+            }
+        }
     }
 
     private static class ReadThread extends Thread {
         @NonNull
-        private Command command;
+        private Cmd cmd;
         private boolean error;
         @NonNull
         private StringBuilder textBuilder;
         @NonNull
         private InputStream inputStream;
 
-        ReadThread(@NonNull Command command, boolean error, @NonNull StringBuilder textBuilder, @NonNull InputStream inputStream) {
-            this.command = command;
+        ReadThread(@NonNull Cmd cmd, boolean error, @NonNull StringBuilder textBuilder, @NonNull InputStream inputStream) {
+            this.cmd = cmd;
             this.error = error;
             this.textBuilder = textBuilder;
             this.inputStream = inputStream;
@@ -148,8 +287,8 @@ class ShellExecutor {
 
         @Override
         public void run() {
-            if (command.isPrintLog()) {
-                Log.i(Sheller.TAG, String.format("ShellExecutor. ReadThread. %s. start", error ? "error" : "text"));
+            if (cmd.isPrintLog()) {
+                SHLog.i("Read thread. %s. start", error ? "error" : "text");
             }
 
             BufferedReader bufferedReader = null;
@@ -162,17 +301,17 @@ class ShellExecutor {
                     }
                     textBuilder.append(readLine);
 
-                    if (command.isPrintLog()) {
+                    if (cmd.isPrintLog()) {
                         if (error) {
-                            Log.e(Sheller.TAG, String.format("ShellExecutor. ReadThread. %s. read text: %s", error ? "error" : "text", readLine));
+                            SHLog.e("Read thread. %s. read text: %s", error ? "error" : "text", readLine);
                         } else {
-                            Log.d(Sheller.TAG, String.format("ShellExecutor. ReadThread. %s. read text: %s", error ? "error" : "text", readLine));
+                            SHLog.d("Read thread. %s. read text: %s", error ? "error" : "text", readLine);
                         }
                     }
                 }
             } catch (IOException e) {
-                if (command.isPrintLog()) {
-                    Log.w(Sheller.TAG, String.format("ShellExecutor. ReadThread. %s. exception: %s", error ? "error" : "text", e.toString()));
+                if (cmd.isPrintLog()) {
+                    SHLog.w("Read thread. %s. exception: %s", error ? "error" : "text", e.toString());
                 }
                 e.printStackTrace();
             } finally {
@@ -185,8 +324,8 @@ class ShellExecutor {
                 }
             }
 
-            if (command.isPrintLog()) {
-                Log.w(Sheller.TAG, String.format("ShellExecutor. ReadThread. %s. end", error ? "error" : "text"));
+            if (cmd.isPrintLog()) {
+                SHLog.w("Read thread. %s. end", error ? "error" : "text");
             }
         }
     }

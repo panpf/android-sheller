@@ -22,10 +22,10 @@ import android.support.annotation.Nullable;
 /**
  * 可检查前一个命令的执行结果，符合条件才执行当前命令，不会终止后续命令的执行
  */
-public abstract class ConditionalCommand extends Command {
+public abstract class ConditionalCmd extends Cmd {
 
     @SuppressWarnings("WeakerAccess")
-    public ConditionalCommand(@NonNull String shell) {
+    public ConditionalCmd(@NonNull String shell) {
         super(shell);
     }
 
@@ -36,12 +36,12 @@ public abstract class ConditionalCommand extends Command {
      * @return true：执行当前命令；false：跳过当前命令
      */
     @SuppressWarnings("WeakerAccess")
-    public abstract boolean checkLastResult(@Nullable CommandResult previousResult);
+    public abstract boolean checkLastResult(@Nullable CmdResult previousResult);
 
     @NonNull
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder("ConditionalCommand");
+        StringBuilder builder = new StringBuilder("ConditionalCmd");
         builder.append("{");
         builder.append("shell=").append(getShell());
         if (getEnvpList() != null && !getEnvpList().isEmpty()) {

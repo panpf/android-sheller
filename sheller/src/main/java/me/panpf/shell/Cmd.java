@@ -29,13 +29,14 @@ import java.util.List;
  * 单个可执行的命令，可配置环境变量和工作目录
  */
 @SuppressWarnings("WeakerAccess")
-public class Command {
+public class Cmd {
     private String shell;
     private List<String> envpList;
     private File dir;
     private boolean printLog;
+    private int timeout;
 
-    public Command(@NonNull String shell) {
+    public Cmd(@NonNull String shell) {
         //noinspection ConstantConditions
         if (shell == null || "".equals(shell)) {
             throw new IllegalArgumentException("param shell is null or empty");
@@ -46,7 +47,7 @@ public class Command {
     /**
      * 打印执行过程
      */
-    public Command printLog() {
+    public Cmd printLog() {
         this.printLog = true;
         return this;
     }
@@ -55,11 +56,11 @@ public class Command {
      * 设置环境变量，会清空旧的
      *
      * @param envps 环境变量数据，每个元素的格式为 name=value
-     * @return Command
+     * @return Cmd
      */
     @NonNull
     @SuppressWarnings("unused")
-    public Command envp(@Nullable String[] envps) {
+    public Cmd envp(@Nullable String[] envps) {
         if (this.envpList == null) {
             this.envpList = new LinkedList<>();
         }
@@ -76,11 +77,11 @@ public class Command {
      * 设置环境变量，会清空旧的
      *
      * @param envpList 环境变量列表，每个元素的格式为 name=value
-     * @return Command
+     * @return Cmd
      */
     @NonNull
     @SuppressWarnings("unused")
-    public Command envp(@Nullable List<String> envpList) {
+    public Cmd envp(@Nullable List<String> envpList) {
         if (this.envpList == null) {
             this.envpList = new LinkedList<>();
         }
@@ -97,11 +98,11 @@ public class Command {
      * 添加环境变量
      *
      * @param envp 环境变量，格式为 name=value
-     * @return Command
+     * @return Cmd
      */
     @NonNull
     @SuppressWarnings("unused")
-    public Command addEnvp(@NonNull String envp) {
+    public Cmd addEnvp(@NonNull String envp) {
         if (TextUtils.isEmpty(envp)) {
             return this;
         }
@@ -117,11 +118,11 @@ public class Command {
      *
      * @param envpKey   环境变量 KEY
      * @param envpValue 环境变量 VALUE
-     * @return Command
+     * @return Cmd
      */
     @NonNull
     @SuppressWarnings("unused")
-    public Command addEnvp(@NonNull String envpKey, @NonNull String envpValue) {
+    public Cmd addEnvp(@NonNull String envpKey, @NonNull String envpValue) {
         if (TextUtils.isEmpty(envpKey) || TextUtils.isEmpty(envpValue)) {
             return this;
         }
@@ -136,11 +137,11 @@ public class Command {
      * 批量添加环境变量，每个元素的格式为 name=value
      *
      * @param envps 环境变量数据，每个元素的格式为 name=value
-     * @return Command
+     * @return Cmd
      */
     @NonNull
     @SuppressWarnings("unused")
-    public Command addEnvpAll(@NonNull String[] envps) {
+    public Cmd addEnvpAll(@NonNull String[] envps) {
         //noinspection ConstantConditions
         if (envps == null || envps.length <= 0) {
             return this;
@@ -156,11 +157,11 @@ public class Command {
      * 添加环境变量，每个元素的格式为 name=value
      *
      * @param envpList 环境变量列表，每个元素的格式为 name=value
-     * @return Command
+     * @return Cmd
      */
     @NonNull
     @SuppressWarnings("unused")
-    public Command addEnvpAll(@NonNull List<String> envpList) {
+    public Cmd addEnvpAll(@NonNull List<String> envpList) {
         //noinspection ConstantConditions
         if (envpList == null || envpList.isEmpty()) {
             return this;
@@ -176,12 +177,24 @@ public class Command {
      * 设置当前命令的工作目录
      *
      * @param dir 工作目录
-     * @return Command
+     * @return Cmd
      */
     @NonNull
     @SuppressWarnings("unused")
-    public Command dir(@Nullable File dir) {
+    public Cmd dir(@Nullable File dir) {
         this.dir = dir;
+        return this;
+    }
+
+    /**
+     * 设置超时时间
+     *
+     * @param timeout 超时时间，单位毫秒
+     * @return Cmd
+     */
+    @SuppressWarnings("unused")
+    public Cmd timeout(int timeout) {
+        this.timeout = timeout;
         return this;
     }
 
@@ -210,14 +223,21 @@ public class Command {
         return printLog;
     }
 
+    public int getTimeout() {
+        return timeout;
+    }
+
     @NonNull
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder("Command");
+        StringBuilder builder = new StringBuilder("Cmd");
         builder.append("{");
         builder.append("shell=").append(shell);
+        if (timeout > 0) {
+            builder.append(", timeout=").append(timeout);
+        }
         if (envpList != null && !envpList.isEmpty()) {
-            builder.append(", envpList=").append(envpList);
+            builder.append(", envps=").append(envpList);
         }
         if (dir != null) {
             builder.append(", dir=").append(dir);

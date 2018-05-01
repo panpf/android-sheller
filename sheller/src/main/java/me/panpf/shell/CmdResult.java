@@ -26,9 +26,10 @@ import java.io.PrintStream;
 /**
  * 命令执行结果
  */
-public class CommandResult {
+@SuppressWarnings({"unused", "WeakerAccess"})
+public class CmdResult {
     @NonNull
-    private Command command;
+    private Cmd cmd;
     private int code;
     @Nullable
     private String text;
@@ -39,9 +40,8 @@ public class CommandResult {
 
     private transient String exceptionStackTrace;
 
-    @SuppressWarnings("WeakerAccess")
-    public CommandResult(@NonNull Command command, int code, @Nullable String text, @Nullable String errorText, @Nullable Exception exception) {
-        this.command = command;
+    public CmdResult(@NonNull Cmd cmd, int code, @Nullable String text, @Nullable String errorText, @Nullable Exception exception) {
+        this.cmd = cmd;
         this.code = code;
         this.text = text;
         this.errorText = errorText;
@@ -63,14 +63,22 @@ public class CommandResult {
     /**
      * 是否是因为异常导致的失败
      */
-    @SuppressWarnings("unused")
     public boolean isException() {
         return code == -1 && exception != null;
     }
 
+    /**
+     * 是否超时
+     *
+     * @return 超时了
+     */
+    public boolean isTimeout() {
+        return code == -2;
+    }
+
     @NonNull
-    public Command getCommand() {
-        return command;
+    public Cmd getCmd() {
+        return cmd;
     }
 
     /**
@@ -78,7 +86,6 @@ public class CommandResult {
      *
      * @return 0：成功；1：失败；-1：过程异常导致失败
      */
-    @SuppressWarnings("unused")
     public int getCode() {
         return code;
     }
@@ -107,12 +114,10 @@ public class CommandResult {
      * 获取失败时返回的结果
      */
     @Nullable
-    @SuppressWarnings("unused")
     public String getErrorText() {
         return errorText;
     }
 
-    @SuppressWarnings("unused")
     @Nullable
     public Exception getException() {
         return exception;
@@ -125,10 +130,21 @@ public class CommandResult {
         return exception != null ? exception.getLocalizedMessage() : null;
     }
 
+    public String getFinalErrorText() {
+        if (isException()) {
+            return getExceptionMessage();
+        } else if (isTimeout()) {
+            return "Time out of " + cmd.getTimeout() + " ms";
+        } else if (!isSuccess()) {
+            return errorText;
+        } else {
+            return null;
+        }
+    }
+
     /**
      * 获取完整的异常栈信息
      */
-    @SuppressWarnings("unused")
     public String getExceptionStackTrace() {
         if (exception == null) {
             return null;
@@ -147,15 +163,15 @@ public class CommandResult {
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder("CommandResult");
+        StringBuilder builder = new StringBuilder("CmdResult");
         builder.append("{");
-        builder.append("command=").append(command);
+        builder.append("cmd=").append(cmd);
         builder.append(", code=").append(code);
         if (isException()) {
-            builder.append(", exceptionMessage=").append(getExceptionMessage());
+            builder.append(", ex=").append(getExceptionMessage());
         } else {
             builder.append(", text=").append(text);
-            builder.append(", errorText=").append(errorText);
+            builder.append(", error=").append(errorText);
         }
         builder.append('}');
         return builder.toString();

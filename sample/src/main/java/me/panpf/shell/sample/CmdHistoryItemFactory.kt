@@ -7,24 +7,24 @@ import android.widget.TextView
 import me.panpf.adapter.AssemblyRecyclerItem
 import me.panpf.adapter.AssemblyRecyclerItemFactory
 
-class CommandHistoryItemFactory : AssemblyRecyclerItemFactory<CommandHistoryItem>() {
-    override fun createAssemblyItem(parent: ViewGroup?): CommandHistoryItem {
-        return CommandHistoryItem(R.layout.list_item_history, parent)
+class CmdHistoryItemFactory : AssemblyRecyclerItemFactory<CmdHistoryItem>() {
+    override fun createAssemblyItem(parent: ViewGroup?): CmdHistoryItem {
+        return CmdHistoryItem(R.layout.list_item_history, parent)
     }
 
     override fun isTarget(data: Any?): Boolean {
-        return data is CommandHistory
+        return data is CmdHistory
     }
 }
 
-class CommandHistoryItem(itemLayoutId: Int, parent: ViewGroup?) : AssemblyRecyclerItem<CommandHistory>(itemLayoutId, parent) {
+class CmdHistoryItem(itemLayoutId: Int, parent: ViewGroup?) : AssemblyRecyclerItem<CmdHistory>(itemLayoutId, parent) {
     private val shellTextView: TextView by bindView(R.id.text_historyItem_shell)
     private val textTextView: TextView by bindView(R.id.text_historyItem_text)
 
     override fun onConfigViews(context: Context?) {
     }
 
-    override fun onSetData(position: Int, data: CommandHistory?) {
+    override fun onSetData(position: Int, data: CmdHistory?) {
         if (data != null) {
             shellTextView.text = data.shell
             if (data.result != null) {
@@ -33,12 +33,8 @@ class CommandHistoryItem(itemLayoutId: Int, parent: ViewGroup?) : AssemblyRecycl
                         textTextView.text = data.result!!.text
                         textTextView.setTextColor(Color.BLACK)
                     }
-                    data.result!!.isException -> {
-                        textTextView.text = data.result!!.exceptionMessage
-                        textTextView.setTextColor(Color.RED)
-                    }
                     else -> {
-                        textTextView.text = data.result!!.errorText
+                        textTextView.text = data.result!!.finalErrorText
                         textTextView.setTextColor(Color.RED)
                     }
                 }

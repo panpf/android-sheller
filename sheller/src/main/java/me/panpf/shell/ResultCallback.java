@@ -19,5 +19,5 @@ package me.panpf.shell;
 import android.support.annotation.NonNull;
 
 public interface ResultCallback {
-    void onCallbackResult(@NonNull CommandResult result);
+    void onCallbackResult(@NonNull CmdResult result);
 }

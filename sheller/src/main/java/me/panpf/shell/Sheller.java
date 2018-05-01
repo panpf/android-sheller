@@ -30,15 +30,15 @@ import java.util.List;
 public class Sheller {
     public static final String TAG = "Sheller";
 
-    private List<Command> commandList = new LinkedList<>();
+    private List<Cmd> cmdList = new LinkedList<>();
 
-    public Sheller(@NonNull Command... commands) {
-        addAll(commands);
+    public Sheller(@NonNull Cmd... cmds) {
+        addAll(cmds);
     }
 
     @SuppressWarnings("unused")
-    public Sheller(@NonNull Command command) {
-        add(command);
+    public Sheller(@NonNull Cmd cmd) {
+        add(cmd);
     }
 
     public Sheller(@NonNull String... shells) {
@@ -52,12 +52,12 @@ public class Sheller {
 
     @NonNull
     @SuppressWarnings({"unused", "WeakerAccess", "UnusedReturnValue"})
-    public Sheller add(@NonNull Command command) {
+    public Sheller add(@NonNull Cmd cmd) {
         //noinspection ConstantConditions
-        if (command == null) {
-            throw new IllegalArgumentException("param command is null");
+        if (cmd == null) {
+            throw new IllegalArgumentException("param cmd is null");
         }
-        this.commandList.add(command);
+        this.cmdList.add(cmd);
         return this;
     }
 
@@ -68,22 +68,22 @@ public class Sheller {
         if (shell == null || "".equals(shell)) {
             throw new IllegalArgumentException("param shell is null or empty");
         }
-        this.commandList.add(new Command(shell));
+        this.cmdList.add(new Cmd(shell));
         return this;
     }
 
 
     @NonNull
     @SuppressWarnings("unused")
-    public Sheller add(int index, @NonNull Command command) {
+    public Sheller add(int index, @NonNull Cmd cmd) {
         if (index < 0) {
             throw new IllegalArgumentException("param index invalid. " + index);
         }
         //noinspection ConstantConditions
-        if (command == null) {
-            throw new IllegalArgumentException("param command is null");
+        if (cmd == null) {
+            throw new IllegalArgumentException("param cmd is null");
         }
-        this.commandList.add(index, command);
+        this.cmdList.add(index, cmd);
         return this;
     }
 
@@ -97,24 +97,24 @@ public class Sheller {
         if (shell == null || "".equals(shell)) {
             throw new IllegalArgumentException("param shell is null or empty");
         }
-        this.commandList.add(index, new Command(shell));
+        this.cmdList.add(index, new Cmd(shell));
         return this;
     }
 
 
     @NonNull
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
-    public Sheller addAll(@NonNull Command... commands) {
+    public Sheller addAll(@NonNull Cmd... cmds) {
         //noinspection ConstantConditions
-        if (commands == null || commands.length <= 0) {
-            throw new IllegalArgumentException("param commands is empty");
+        if (cmds == null || cmds.length <= 0) {
+            throw new IllegalArgumentException("param cmd is empty");
         }
         int index = 0;
-        for (Command command : commands) {
-            if (command == null) {
+        for (Cmd cmd : cmds) {
+            if (cmd == null) {
                 throw new IllegalArgumentException("element at index " + index + " is null");
             }
-            this.commandList.add(command);
+            this.cmdList.add(cmd);
             index++;
         }
         return this;
@@ -128,11 +128,11 @@ public class Sheller {
             throw new IllegalArgumentException("param shells is empty");
         }
         int index = 0;
-        for (String command : shells) {
-            if (command == null || "".equals(command)) {
+        for (String cmd : shells) {
+            if (cmd == null || "".equals(cmd)) {
                 throw new IllegalArgumentException("shell at index " + index + " is null or empty");
             }
-            this.commandList.add(new Command(command));
+            this.cmdList.add(new Cmd(cmd));
         }
         return this;
     }
@@ -142,40 +142,40 @@ public class Sheller {
      */
     @NonNull
     @SuppressWarnings("WeakerAccess")
-    public CommandResult syncExecute() {
-        if (commandList.isEmpty()) {
-            throw new IllegalArgumentException("command list is empty");
+    public CmdResult syncExecute() {
+        if (cmdList.isEmpty()) {
+            throw new IllegalArgumentException("cmd list is empty");
         }
 
-        CommandResult previousResult = null;
-        CommandResult lastResult = null;
-        for (Command command : commandList) {
-            if (command == null) {
+        CmdResult previousResult = null;
+        CmdResult lastResult = null;
+        for (Cmd cmd : cmdList) {
+            if (cmd == null) {
                 continue;
             }
 
-            if (lastResult != null && command instanceof SuspendCommand) {
-                if (((SuspendCommand) command).checkLastResult(previousResult)) {
-                    previousResult = new ShellExecutor(command).execute();
+            if (lastResult != null && cmd instanceof SuspendCmd) {
+                if (((SuspendCmd) cmd).checkLastResult(previousResult)) {
+                    previousResult = ShellExecutor.syncExecute(cmd);
                     lastResult = previousResult;
                 } else {
                     break;
                 }
-            } else if (lastResult != null && command instanceof ConditionalCommand) {
-                if (((ConditionalCommand) command).checkLastResult(previousResult)) {
-                    previousResult = new ShellExecutor(command).execute();
+            } else if (lastResult != null && cmd instanceof ConditionalCmd) {
+                if (((ConditionalCmd) cmd).checkLastResult(previousResult)) {
+                    previousResult = ShellExecutor.syncExecute(cmd);
                     lastResult = previousResult;
                 } else {
                     previousResult = null;
                 }
             } else {
-                previousResult = new ShellExecutor(command).execute();
+                previousResult = ShellExecutor.syncExecute(cmd);
                 lastResult = previousResult;
             }
         }
 
         if (lastResult == null) {
-            throw new IllegalArgumentException("command list elements is empty");
+            throw new IllegalArgumentException("cmd list elements is empty");
         }
 
         return lastResult;
@@ -192,7 +192,7 @@ public class Sheller {
         new Thread() {
             @Override
             public void run() {
-                final CommandResult result = syncExecute();
+                final CmdResult result = syncExecute();
                 if (callback != null) {
                     if (handler != null) {
                         handler.post(new Runnable() {
