@@ -203,11 +203,11 @@ CmdResult result = new Sheller(suCmd).add(installCmd).syncExecute();
     limitations under the License.
 
 [platform_image]: https://img.shields.io/badge/Platform-Android-brightgreen.svg
-[api_image]: https://img.shields.io/badge/API-10%2B-orange.svg
-[api_link]: https://android-arsenal.com/api?level=10
+[api_image]: https://img.shields.io/badge/API-14%2B-orange.svg
+[api_link]: https://android-arsenal.com/api?level=14
 [release_icon]: https://img.shields.io/github/release/panpf/sheller.svg
 [release_link]: https://github.com/panpf/sheller/releases
 [license_image]: https://img.shields.io/badge/License-Apache%202-blue.svg
 [license_link]: https://www.apache.org/licenses/LICENSE-2.0
-[SuspendCommand]: sheller/src/main/java/me/panpf/shell/SuspendCommand.java
-[ConditionalCommand]: sheller/src/main/java/me/panpf/shell/ConditionalCommand.java
+[SuspendCmd]: sheller/src/main/java/me/panpf/shell/SuspendCmd.java
+[ConditionalCmd]: sheller/src/main/java/me/panpf/shell/ConditionalCmd.java
