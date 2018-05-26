@@ -25,8 +25,6 @@ dependencies {
 
 `$lastVersionName`：[![Release][release_icon]][release_link]`（不带v）`
 
-`最低兼容 API 10`
-
 ### 2. 执行命令
 
 #### 2.1. 同步执行：
