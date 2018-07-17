@@ -310,10 +310,14 @@ class ShellExecutor {
                     }
                 }
             } catch (IOException e) {
-                if (cmd.isPrintLog()) {
-                    SHLog.w("Read thread. %s. exception: %s", error ? "error" : "text", e.toString());
+                if ("Stream closed".equalsIgnoreCase(e.getMessage())) {
+                    // Normal closed
+                } else {
+                    if (cmd.isPrintLog()) {
+                        SHLog.w("Read thread. %s. exception: %s", error ? "error" : "text", e.toString());
+                    }
+                    e.printStackTrace();
                 }
-                e.printStackTrace();
             } finally {
                 if (bufferedReader != null) {
                     try {
