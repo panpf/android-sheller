@@ -16,8 +16,8 @@
 
 package me.panpf.shell;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -29,9 +29,6 @@ import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * 负责具体执行 shell 命令
- */
 class ShellExecutor {
 
     @NonNull
@@ -56,7 +53,7 @@ class ShellExecutor {
         this.running = new AtomicBoolean(false);
     }
 
-    public static CmdResult syncExecute(@NonNull Cmd cmd) {
+    static CmdResult syncExecute(@NonNull Cmd cmd) {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final CmdResult[] results = new CmdResult[1];
         new ShellExecutor(cmd, new Callback() {
@@ -104,7 +101,6 @@ class ShellExecutor {
         try {
             callback.onFinished(new CmdResult(cmd, -2, null, null, null));
         } catch (Exception e) {
-            // 捕获回调异常
             e.printStackTrace();
         }
     }
@@ -127,7 +123,6 @@ class ShellExecutor {
         try {
             callback.onFinished(result);
         } catch (Exception e) {
-            // 捕获回调异常
             e.printStackTrace();
         }
     }
@@ -303,16 +298,14 @@ class ShellExecutor {
 
                     if (cmd.isPrintLog()) {
                         if (error) {
-                            SHLog.e("Read thread. %s. read text: %s", error ? "error" : "text", readLine);
+                            SHLog.e("Read thread. %s. read text: %s", "error", readLine);
                         } else {
-                            SHLog.d("Read thread. %s. read text: %s", error ? "error" : "text", readLine);
+                            SHLog.d("Read thread. %s. read text: %s", "text", readLine);
                         }
                     }
                 }
             } catch (IOException e) {
-                if ("Stream closed".equalsIgnoreCase(e.getMessage())) {
-                    // Normal closed
-                } else {
+                if (!"Stream closed".equalsIgnoreCase(e.getMessage())) {
                     if (cmd.isPrintLog()) {
                         SHLog.w("Read thread. %s. exception: %s", error ? "error" : "text", e.toString());
                     }

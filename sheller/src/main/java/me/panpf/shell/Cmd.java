@@ -16,11 +16,13 @@
 
 package me.panpf.shell;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import java.io.File;
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -28,10 +30,12 @@ import java.util.List;
 /**
  * 单个可执行的命令，可配置环境变量和工作目录
  */
-@SuppressWarnings("WeakerAccess")
-public class Cmd {
+public class Cmd implements Serializable {
+    @NonNull
     private String shell;
+    @Nullable
     private List<String> envpList;
+    @Nullable
     private File dir;
     private boolean printLog;
     private int timeout;
@@ -59,14 +63,12 @@ public class Cmd {
      * @return Cmd
      */
     @NonNull
-    @SuppressWarnings("unused")
     public Cmd envp(@Nullable String[] envps) {
         if (this.envpList == null) {
             this.envpList = new LinkedList<>();
         }
         envpList.clear();
 
-        //noinspection ConstantConditions
         if (envps != null && envps.length > 0) {
             Collections.addAll(envpList, envps);
         }
@@ -80,14 +82,12 @@ public class Cmd {
      * @return Cmd
      */
     @NonNull
-    @SuppressWarnings("unused")
     public Cmd envp(@Nullable List<String> envpList) {
         if (this.envpList == null) {
             this.envpList = new LinkedList<>();
         }
         this.envpList.clear();
 
-        //noinspection ConstantConditions
         if (envpList != null && !envpList.isEmpty()) {
             this.envpList.addAll(envpList);
         }
@@ -101,7 +101,6 @@ public class Cmd {
      * @return Cmd
      */
     @NonNull
-    @SuppressWarnings("unused")
     public Cmd addEnvp(@NonNull String envp) {
         if (TextUtils.isEmpty(envp)) {
             return this;
@@ -121,7 +120,6 @@ public class Cmd {
      * @return Cmd
      */
     @NonNull
-    @SuppressWarnings("unused")
     public Cmd addEnvp(@NonNull String envpKey, @NonNull String envpValue) {
         if (TextUtils.isEmpty(envpKey) || TextUtils.isEmpty(envpValue)) {
             return this;
@@ -140,7 +138,6 @@ public class Cmd {
      * @return Cmd
      */
     @NonNull
-    @SuppressWarnings("unused")
     public Cmd addEnvpAll(@NonNull String[] envps) {
         //noinspection ConstantConditions
         if (envps == null || envps.length <= 0) {
@@ -160,7 +157,6 @@ public class Cmd {
      * @return Cmd
      */
     @NonNull
-    @SuppressWarnings("unused")
     public Cmd addEnvpAll(@NonNull List<String> envpList) {
         //noinspection ConstantConditions
         if (envpList == null || envpList.isEmpty()) {
@@ -180,7 +176,6 @@ public class Cmd {
      * @return Cmd
      */
     @NonNull
-    @SuppressWarnings("unused")
     public Cmd dir(@Nullable File dir) {
         this.dir = dir;
         return this;
@@ -192,7 +187,6 @@ public class Cmd {
      * @param timeout 超时时间，单位毫秒
      * @return Cmd
      */
-    @SuppressWarnings("unused")
     public Cmd timeout(int timeout) {
         this.timeout = timeout;
         return this;
@@ -204,14 +198,13 @@ public class Cmd {
     }
 
     @Nullable
-    @SuppressWarnings("unused")
     public List<String> getEnvpList() {
         return envpList;
     }
 
     @Nullable
     public String[] getEnvpArray() {
-        return envpList != null && !envpList.isEmpty() ? envpList.toArray(new String[envpList.size()]) : null;
+        return envpList != null && !envpList.isEmpty() ? envpList.toArray(new String[0]) : null;
     }
 
     @Nullable
@@ -227,7 +220,6 @@ public class Cmd {
         return timeout;
     }
 
-    @NonNull
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder("Cmd");

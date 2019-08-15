@@ -16,15 +16,14 @@
 
 package me.panpf.shell;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
  * 可检查前一个命令的执行结果，符合条件才执行当前命令，不会终止后续命令的执行
  */
 public abstract class ConditionalCmd extends Cmd {
 
-    @SuppressWarnings("WeakerAccess")
     public ConditionalCmd(@NonNull String shell) {
         super(shell);
     }
@@ -35,7 +34,6 @@ public abstract class ConditionalCmd extends Cmd {
      * @param previousResult 上一个命令的执行结果
      * @return true：执行当前命令；false：跳过当前命令
      */
-    @SuppressWarnings("WeakerAccess")
     public abstract boolean checkLastResult(@Nullable CmdResult previousResult);
 
     @NonNull

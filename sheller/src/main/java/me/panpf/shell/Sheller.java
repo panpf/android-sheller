@@ -17,8 +17,9 @@
 package me.panpf.shell;
 
 import android.os.Handler;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -36,7 +37,6 @@ public class Sheller {
         addAll(cmds);
     }
 
-    @SuppressWarnings("unused")
     public Sheller(@NonNull Cmd cmd) {
         add(cmd);
     }
@@ -51,7 +51,6 @@ public class Sheller {
 
 
     @NonNull
-    @SuppressWarnings({"unused", "WeakerAccess", "UnusedReturnValue"})
     public Sheller add(@NonNull Cmd cmd) {
         //noinspection ConstantConditions
         if (cmd == null) {
@@ -62,7 +61,6 @@ public class Sheller {
     }
 
     @NonNull
-    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue", "unused"})
     public Sheller add(@NonNull String shell) {
         //noinspection ConstantConditions
         if (shell == null || "".equals(shell)) {
@@ -74,7 +72,6 @@ public class Sheller {
 
 
     @NonNull
-    @SuppressWarnings("unused")
     public Sheller add(int index, @NonNull Cmd cmd) {
         if (index < 0) {
             throw new IllegalArgumentException("param index invalid. " + index);
@@ -88,7 +85,6 @@ public class Sheller {
     }
 
     @NonNull
-    @SuppressWarnings("unused")
     public Sheller add(int index, @NonNull String shell) {
         if (index < 0) {
             throw new IllegalArgumentException("param index invalid. " + index);
@@ -103,7 +99,6 @@ public class Sheller {
 
 
     @NonNull
-    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     public Sheller addAll(@NonNull Cmd... cmds) {
         //noinspection ConstantConditions
         if (cmds == null || cmds.length <= 0) {
@@ -121,7 +116,6 @@ public class Sheller {
     }
 
     @NonNull
-    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     public Sheller addAll(@NonNull String... shells) {
         //noinspection ConstantConditions
         if (shells == null || shells.length <= 0) {
@@ -141,7 +135,6 @@ public class Sheller {
      * 同步执行，只要最后一个结果
      */
     @NonNull
-    @SuppressWarnings("WeakerAccess")
     public CmdResult syncExecute() {
         if (cmdList.isEmpty()) {
             throw new IllegalArgumentException("cmd list is empty");
@@ -187,8 +180,7 @@ public class Sheller {
      * @param callback 结果回调
      * @param handler  结果回调在指定 Handler 中执行
      */
-    @SuppressWarnings({"unused", "WeakerAccess"})
-    public void asyncExecute(@SuppressWarnings("SameParameterValue") final Handler handler, @Nullable final ResultCallback callback) {
+    public void asyncExecute(final Handler handler, @Nullable final ResultCallback callback) {
         new Thread() {
             @Override
             public void run() {

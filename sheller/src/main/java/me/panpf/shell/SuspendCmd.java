@@ -16,8 +16,8 @@
 
 package me.panpf.shell;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
  * 可检查前一个命令的执行结果，符合条件才执行当前命令，否则终止执行后续命令
@@ -34,7 +34,6 @@ public abstract class SuspendCmd extends Cmd {
      * @param previousResult 上一个命令的执行结果
      * @return true：继续执行当前以及后续命令；false：终止执行当前以及后续命令
      */
-    @SuppressWarnings("WeakerAccess")
     public abstract boolean checkLastResult(@Nullable CmdResult previousResult);
 
     @NonNull

@@ -1,9 +1,9 @@
 package me.panpf.shell;
 
-import android.support.annotation.NonNull;
 import android.util.Log;
 
-@SuppressWarnings("unused")
+import androidx.annotation.NonNull;
+
 class SHLog {
     public static void d(@NonNull String format, @NonNull Object... args) {
         Log.d(Sheller.TAG, String.format(format, args));

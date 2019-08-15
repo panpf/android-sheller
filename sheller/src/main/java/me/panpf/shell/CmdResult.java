@@ -16,18 +16,19 @@
 
 package me.panpf.shell;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.text.TextUtils;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.io.Serializable;
 
 /**
  * 命令执行结果
  */
-@SuppressWarnings({"unused", "WeakerAccess"})
-public class CmdResult {
+public class CmdResult implements Serializable {
     @NonNull
     private Cmd cmd;
     private int code;
