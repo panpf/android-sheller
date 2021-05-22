@@ -15,7 +15,7 @@ Sheller 是 Android 上的一个 shell 库，可帮助开发者方便的执行 s
 
 ## 使用指南
 
-### 1. 从 JCenter 导入 Sheller
+### 1. 从 mavenCentral 导入 Sheller
 
 ```groovy
 dependencies {
