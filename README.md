@@ -19,11 +19,11 @@ Sheller 是 Android 上的一个 shell 库，可帮助开发者方便的执行 s
 
 ```groovy
 dependencies {
-    compile 'me.panpf:sheller:$lastVersionName'
+    compile 'io.github.panpf.androidsheller:androidsheller:${lastVersionName}'
 }
 ```
 
-`$lastVersionName`：[![Release][release_icon]][release_link]`（不带v）`
+`${lastVersionName}`：[![Release][release_icon]][release_link]`（不带v）`
 
 ### 2. 执行命令
 
@@ -203,8 +203,8 @@ CmdResult result = new Sheller(suCmd).add(installCmd).syncExecute();
 [platform_image]: https://img.shields.io/badge/Platform-Android-brightgreen.svg
 [api_image]: https://img.shields.io/badge/API-14%2B-orange.svg
 [api_link]: https://android-arsenal.com/api?level=14
-[release_icon]: https://img.shields.io/github/release/panpf/sheller.svg
-[release_link]: https://github.com/panpf/sheller/releases
+[release_icon]: https://img.shields.io/maven-central/v/io.github.panpf.androidsheller/androidsheller
+[release_link]: https://repo1.maven.org/maven2/io/github/panpf/androidsheller/
 [license_image]: https://img.shields.io/badge/License-Apache%202-blue.svg
 [license_link]: https://www.apache.org/licenses/LICENSE-2.0
 [SuspendCmd]: sheller/src/main/java/me/panpf/shell/SuspendCmd.java
